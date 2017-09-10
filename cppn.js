@@ -5,7 +5,8 @@ function buildModel (graph, batchSize, latentDim, w, h, scale) {
 	var pixels       = w * h;
 
 	var z = graph.placeholder("latent_z", [ batchSize
-										  // HACK: Due to lack of broadcasting.
+										  // HACK: Due to lack of broadcasting. We perform the broadcasting
+										  // in the input space, instead of here.
 										  , pixels
 										  , latentDim
 									      ]);
@@ -67,12 +68,17 @@ function buildModel (graph, batchSize, latentDim, w, h, scale) {
 }
 
 // What the heck, JavaScript.
-function range(k, f) {
+function range (k, f) {
 	r = new Array(k);
 	for(i = 0; i < r.length; i++){
 		r[i] = f(i);
 	}
 	return r;
+}
+
+function mathOnes (math, shape) {
+	var r = deeplearn.Array2D.zeros(shape);
+	return math.add(r, deeplearn.Scalar.ONE);
 }
 
 function vectorInputs (math, w, h, scale) {
@@ -87,17 +93,12 @@ function vectorInputs (math, w, h, scale) {
 		return g;
 	}
 
-	function ones (shape) {
-		var r = deeplearn.Array2D.zeros(shape);
-		return math.add(r, deeplearn.Scalar.ONE);
-	}
-
 	var pixels = w * h;
 	var xRange = deeplearn.Array1D.new(range(w, f(w)));
 	var yRange = deeplearn.Array1D.new(range(h, f(h)));
 
-	var xMat = math.matMul(ones([h, 1]), xRange.reshape([1, w]));
-	var yMat = math.matMul(yRange.reshape([h, 1]), ones([1, w]));
+	var xMat = math.matMul(mathOnes(math, [h, 1]), xRange.reshape([1, w]));
+	var yMat = math.matMul(yRange.reshape([h, 1]), mathOnes(math, [1, w]));
 
 	var rMat = math.sqrt( math.add( math.multiply(xMat, xMat)
 					              , math.multiply(yMat, yMat) ) );
@@ -110,8 +111,9 @@ function vectorInputs (math, w, h, scale) {
 }
 
 function forward (net, session, math, z_, feeds, ctx, w, h, batchSize, latentDim) {
+	var zvec   = deeplearn.Array2D.randUniform([batchSize, 1, latentDim], -1, 1);
+	zvec       = math.multiply(zvec, mathOnes(math, [1, w*h, latentDim]));
 
-	var zvec   = deeplearn.Array2D.randUniform([batchSize, w*h, latentDim], -1, 1);
 	var zFeeds = feeds.concat([{"tensor": z_, "data": zvec }]);
 
 	vals = session.eval(net, zFeeds);
