@@ -4,6 +4,13 @@ Using [deeplearning.js](https://github.com/PAIR-code/deeplearnjs), this is a re-
 I've done it using no other JS libs, and I haven't written JS for many years,
 so the code is probably terrible; forgive me!
 
+### Check it out
+
+You can play around with a
+[static](https://silky.github.io/simple-cppn-deeplearn.js/) image generator
+here, or the one that does interpolation
+[here](https://silky.github.io/simple-cppn-deeplearn.js/interp.html).
+
 ### Usage
 
 Clone the repo and open the html file. You should seem something like this:
