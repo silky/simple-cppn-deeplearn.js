@@ -1,5 +1,5 @@
 function buildModel (graph, batchSize, latentDim, w, h, scale) {
-    var netSize = 16;
+    var netSize = 20;
     var colours = 3;
     var pixels  = w * h;
 
@@ -50,14 +50,14 @@ function buildModel (graph, batchSize, latentDim, w, h, scale) {
     var r_unrolled = r;
 
     U = fc("g_0_z", z_unrolled, netSize, graph.relu);
-    U = graph.add(U, fc("g_0_x", x_unrolled, netSize, graph.relu, false));
+    U = graph.add(U, fc("g_0_x", x_unrolled, netSize, graph.sigmoid, false));
     U = graph.add(U, fc("g_0_y", y_unrolled, netSize, graph.relu, false));
     U = graph.add(U, fc("g_0_r", r_unrolled, netSize, graph.relu, false));
 
     H = graph.tanh(U);
 
     for(k = 0; k <= 3; k++){
-        H = graph.tanh(fc("g_tanh_" + k, H, netSize, graph.relu));
+        H = graph.tanh(fc("g_tanh_" + k, H, netSize, graph.sigmoid));
     }
 
     net = graph.sigmoid(fc("g_tanh_" + k, H, colours, graph.relu));
@@ -193,6 +193,7 @@ function interp (a, b, c) {
 
         var steps = 100;
         var k     = 0;
+        var v     = 1;
         
         function doInterp () {
             var diff = math.add(z1, math.multiply(z0, deeplearn.Scalar.NEG_ONE));
@@ -202,16 +203,22 @@ function interp (a, b, c) {
 
             forward(net, session, math, zn, z_, feeds, cCtx, w, h, batchSize, latentDim);
 
-            if( k++ > steps ){
-                k = 0;
+            k = k + v;
+
+            if( k > steps ){
+                k = steps;
+                v = -1;
             }
+
+            if( k < 0 ){
+                k = 0;
+                v = 1;
+            }
+
+            requestAnimationFrame( function () { math.scope(function () { doInterp(); }); });
         }
 
-        requestAnimationFrame( function (k) {
-            math.scope(function () {
-                doInterp();
-            });
-        });
+        doInterp();
     });
 }
 
