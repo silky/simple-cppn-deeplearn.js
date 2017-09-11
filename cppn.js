@@ -1,8 +1,7 @@
 function buildModel (graph, batchSize, latentDim, w, h, scale) {
-    var outputCanvas = document.getElementById("output");
-    var netSize      = 16;
-    var colours      = 3;
-    var pixels       = w * h;
+    var netSize = 16;
+    var colours = 3;
+    var pixels  = w * h;
 
     var z = graph.placeholder("latent_z", [ batchSize
                                           // HACK: Due to lack of broadcasting. We perform the broadcasting
@@ -15,9 +14,9 @@ function buildModel (graph, batchSize, latentDim, w, h, scale) {
     var r = graph.placeholder("r", [batchSize * pixels, 1]);
 
     function ones (shape) {
-        var r = deeplearn.Array2D.zeros(shape);
-        var cr = graph.constant(r);
-        var c1 = graph.constant(1);
+        var r     = deeplearn.Array2D.zeros(shape);
+        var cr    = graph.constant(r);
+        var c1    = graph.constant(1);
         var added = graph.add(cr, c1);
         return added;
     }
@@ -110,11 +109,15 @@ function vectorInputs (math, w, h, scale) {
     return [xMat, yMat, rMat];
 }
 
-function forward (net, session, math, z_, feeds, ctx, w, h, batchSize, latentDim) {
-    var zvec   = deeplearn.Array2D.randUniform([batchSize, 1, latentDim], -1, 1);
-    zvec       = math.multiply(zvec, mathOnes(math, [1, w*h, latentDim]));
+function forward (net, session, math, zvec, z_, feeds, ctx, w, h, batchSize, latentDim) {
 
-    var zFeeds = feeds.concat([{"tensor": z_, "data": zvec }]);
+    if( !zvec ) {
+        zvec = deeplearn.Array3D.randUniform([batchSize, 1, latentDim], -1, 1);
+    }
+
+    zvecDense  = math.multiply(zvec, mathOnes(math, [1, w*h, latentDim]));
+
+    var zFeeds = feeds.concat([{"tensor": z_, "data": zvecDense }]);
 
     vals = session.eval(net, zFeeds);
     vals = vals.getValues();
@@ -134,38 +137,84 @@ function forward (net, session, math, z_, feeds, ctx, w, h, batchSize, latentDim
     }
 
     ctx.putImageData(img, 0, 0);
+
+    return zvec;
     
-    // requestAnimationFrame( function () {
-    //  math.scope(function (){
-    //      forward( net, session, math, z_, feeds, ctx, w, h, batchSize, latentDim );
-    //  });
-    // });
 }
 
-function go () {
-    var canvas = document.getElementById("output");
-    var ctx    = canvas.getContext("2d");
+function setup (canvas) {
     var graph     = new deeplearn.Graph;
     var batchSize = 1;
     var latentDim = 8;
-    var w         = canvas.width; 
+    var w         = canvas.width;
     var h         = canvas.height;
     var scale     = 1;
 
-    var math = new deeplearn.NDArrayMathGPU();
+    [net, z_, x_, y_, r_] = buildModel(graph, batchSize, latentDim, w, h, scale);
 
-    math.scope(function () {
-        [net, z_, x_, y_, r_] = buildModel(graph, batchSize, latentDim, w, h, scale);
+    [xvec, yvec, rvec] = vectorInputs(math, w, h, scale);
 
-        [xvec, yvec, rvec] = vectorInputs(math, w, h, scale);
+    var feeds = [ {"tensor": x_, "data": xvec}
+                , {"tensor": y_, "data": yvec}
+                , {"tensor": r_, "data": rvec}
+                ];
 
-        var feeds = [ {"tensor": x_, "data": xvec}
-                    , {"tensor": y_, "data": yvec}
-                    , {"tensor": r_, "data": rvec}
-                    ];
+    var session = new deeplearn.Session(graph, math);
 
-        var session = new deeplearn.Session(graph, math);
+    return [net, session, z_, feeds, w, h, batchSize, latentDim];
+}
 
-        forward( net, session, math, z_, feeds, ctx, w, h, batchSize, latentDim );
+function generateOnce (canvasId, zvec) {
+    var canvas    = document.getElementById(canvasId);
+    var ctx       = canvas.getContext("2d");
+
+    math.scope(function (){
+        [net, session, z_, feeds, w, h, batchSize, latentDim] = setup(canvas);
+        forward( net, session, math, zvec, z_, feeds, ctx, w, h, batchSize, latentDim );
     });
 }
+
+
+/* Generate a thing in 'a' and a thing in 'b' and then animate 'c' so that it
+ * interpolates back and forth between them.
+ */
+function interp (a, b, c) {
+    var canvas = document.getElementById(a);
+
+    var aCtx = canvas.getContext("2d");
+    var bCtx = document.getElementById(b).getContext("2d");
+    var cCtx = document.getElementById(c).getContext("2d");
+
+    math.scope(function () {
+        [net, session, z_, feeds, w, h, batchSize, latentDim] = setup(canvas);
+
+        var z0 = forward(net, session, math, undefined, z_, feeds, aCtx, w, h, batchSize, latentDim);
+        var z1 = forward(net, session, math, undefined, z_, feeds, bCtx, w, h, batchSize, latentDim);
+
+        var steps = 100;
+        var k     = 0;
+        
+        function doInterp () {
+            var diff = math.add(z1, math.multiply(z0, deeplearn.Scalar.NEG_ONE));
+            var step = math.divide(diff, deeplearn.Scalar.new(steps));
+            var ck   = deeplearn.Scalar.new(k);
+            var zn   = math.add(z0, math.multiply(ck, step));
+
+            forward(net, session, math, zn, z_, feeds, cCtx, w, h, batchSize, latentDim);
+
+            if( k++ > steps ){
+                k = 0;
+            }
+        }
+
+        requestAnimationFrame( function (k) {
+            math.scope(function () {
+                doInterp();
+            });
+        });
+    });
+}
+
+
+// Note: This needs to be global, for reasons I don't understand.
+var math = new deeplearn.NDArrayMathGPU();
