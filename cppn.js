@@ -126,8 +126,8 @@ function forward (net, session, math, zvec, z_, feeds, ctx, w, h, batchSize, lat
 
     for(x = 0; x < w; x++){
         for(y = 0; y < h; y++){
-            var ix = (y + (x * w))*4;
-            var iv = (y + (x * w))*3;
+            var ix = (y*w + x)*4;
+            var iv = (y*w + x)*3;
 
             img.data[ix + 0] = Math.floor(255 * vals[iv + 0]);
             img.data[ix + 1] = Math.floor(255 * vals[iv + 1]);
