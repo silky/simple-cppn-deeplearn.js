@@ -21,7 +21,7 @@ function buildModel (graph, batchSize, latentDim, w, h, scale) {
         return added;
     }
 
-    function fc (name, input, size, activation, includeBias) {
+    function fc (name, input, size, includeBias) {
         // TODO: Why can't we use layers.dense?
 
         if( !includeBias ){
@@ -33,7 +33,7 @@ function buildModel (graph, batchSize, latentDim, w, h, scale) {
         var result  = graph.matmul(input, weights);
 
         if( includeBias ){
-            bias   = deeplearn.Array2D.randNorml([shape[0], size]);
+            bias   = deeplearn.Array2D.randNormal([input.shape[0], size]);
             bias   = graph.variable("bias", bias);
             result = graph.add(weights, bias);
         }
@@ -49,18 +49,18 @@ function buildModel (graph, batchSize, latentDim, w, h, scale) {
     var y_unrolled = y;
     var r_unrolled = r;
 
-    U = fc("g_0_z", z_unrolled, netSize, graph.relu);
-    U = graph.add(U, fc("g_0_x", x_unrolled, netSize, graph.sigmoid, false));
-    U = graph.add(U, fc("g_0_y", y_unrolled, netSize, graph.relu, false));
-    U = graph.add(U, fc("g_0_r", r_unrolled, netSize, graph.relu, false));
+    U = fc("g_0_z", z_unrolled, netSize);
+    U = graph.add(U, fc("g_0_x", x_unrolled, netSize, false));
+    U = graph.add(U, fc("g_0_y", y_unrolled, netSize, false));
+    U = graph.add(U, fc("g_0_r", r_unrolled, netSize, false));
 
     H = graph.tanh(U);
 
     for(k = 0; k <= 3; k++){
-        H = graph.tanh(fc("g_tanh_" + k, H, netSize, graph.sigmoid));
+        H = graph.tanh(fc("g_tanh_" + k, H, netSize));
     }
 
-    net = graph.sigmoid(fc("g_tanh_" + k, H, colours, graph.relu));
+    net = graph.sigmoid(fc("g_tanh_" + k, H, colours));
     net = graph.reshape(net, [w, h, colours]);
 
     return [net, z, x, y, r];
