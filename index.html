@@ -3,7 +3,16 @@
 <script src="cppn.js"></script>
 <style type="text/css">
 canvas { 
-    border: solid 1px black;
+    border : solid 1px black;
+    width  : 300px;
+    height : 300px;
+
+    image-rendering: optimizeSpeed;             /* Older versions of FF          */
+    image-rendering: -moz-crisp-edges;          /* FF 6.0+                       */
+    image-rendering: -webkit-optimize-contrast; /* Safari                        */
+    image-rendering: -o-crisp-edges;            /* OS X & Windows Opera (12.02+) */
+    image-rendering: pixelated;                 /* Awesome future-browsers       */
+    -ms-interpolation-mode: nearest-neighbor;   /* IE                            */
 }
 </style>
 
@@ -14,9 +23,22 @@ canvas {
 <h1>cppn in deeplearn.js</h1>
 <canvas height=300 width=300 id="output"> </canvas>
 
-<p> refresh for another one!
+<p> refresh for another one!, or ..
+
+<p> resize: 
+<br /> <input id="w" value="300" /> x <input id="h" value="300" />
+<button onclick="resize_and_generate();">resize and generate</button>
+</p>
 
 <script type="text/javascript">
     generateOnce("output");
+
+    function resize_and_generate() {
+        var o    = document.getElementById("output");
+        o.width  = document.getElementById("w").value;
+        o.height = document.getElementById("h").value;
+
+        generateOnce("output");
+    }
 </script>
 

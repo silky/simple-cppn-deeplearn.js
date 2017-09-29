@@ -194,12 +194,13 @@ function interp (a, b, c) {
         var steps = 100;
         var k     = 0;
         var v     = 1;
+
+        function doInterp (math) {
+            var diff  = math.add(z1, math.multiply(z0, deeplearn.Scalar.NEG_ONE));
+            var step  = math.divide(diff, deeplearn.Scalar.new(steps));
         
-        function doInterp () {
-            var diff = math.add(z1, math.multiply(z0, deeplearn.Scalar.NEG_ONE));
-            var step = math.divide(diff, deeplearn.Scalar.new(steps));
-            var ck   = deeplearn.Scalar.new(k);
-            var zn   = math.add(z0, math.multiply(ck, step));
+            var ck = deeplearn.Scalar.new(k);
+            var zn = math.add(z0, math.multiply(ck, step));
 
             forward(net, session, math, zn, z_, feeds, cCtx, w, h, batchSize, latentDim);
 
@@ -214,14 +215,15 @@ function interp (a, b, c) {
                 k = 0;
                 v = 1;
             }
-
-            requestAnimationFrame( function () { math.scope(function () { doInterp(); }); });
+            
+            // req = requestAnimationFrame( function () { math.scope(function () { doInterp(); }); });
+            req = requestAnimationFrame( function () { doInterp(math); });
         }
 
-        doInterp();
+        req = requestAnimationFrame( function () { doInterp(math); });
     });
 }
 
-
+var req;
 // Note: This needs to be global, for reasons I don't understand.
 var math = new deeplearn.NDArrayMathGPU();

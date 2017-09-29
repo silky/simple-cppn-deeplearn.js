@@ -1,9 +1,19 @@
-<script src="https://storage.googleapis.com/learnjs-data/deeplearn-0.2.0.js"></script>
+<!-- <script src="https://storage.googleapis.com/learnjs-data/deeplearn-0.2.0.js"></script> -->
+<script src="https://storage.googleapis.com/learnjs-data/deeplearn-latest.js"></script>
 <!-- <script src="deeplearn-0.2.0.js"></script> -->
 <script src="cppn.js"></script>
 <style type="text/css">
 canvas { 
     border: solid 1px black;
+    width  : 300px;
+    height : 300px;
+
+    image-rendering: optimizeSpeed;             /* Older versions of FF          */
+    image-rendering: -moz-crisp-edges;          /* FF 6.0+                       */
+    image-rendering: -webkit-optimize-contrast; /* Safari                        */
+    image-rendering: -o-crisp-edges;            /* OS X & Windows Opera (12.02+) */
+    image-rendering: pixelated;                 /* Awesome future-browsers       */
+    -ms-interpolation-mode: nearest-neighbor;   /* IE                            */
 }
 </style>
 
@@ -21,8 +31,27 @@ canvas {
 <canvas height=300 width=300 id="c"> </canvas>
 </center>
 
-<p> refresh for another one!
+<p> refresh for another one!, or ..
+
+<p> resize: 
+<br /> <input id="w" value="300" /> x <input id="h" value="300" />
+<button onclick="resize_and_generate();">resize and generate</button>
+</p>
 
 <script type="text/javascript">
     interp("a", "b", "c");
+
+    function resize_and_generate() {
+        // Clearing last animation
+        cancelAnimationFrame(req);
+
+        canvases = ["a", "b", "c"];
+        canvases.forEach(function (o){
+            var o    = document.getElementById(o);
+            o.width  = document.getElementById("w").value;
+            o.height = document.getElementById("h").value;
+        });
+
+        interp("a", "b", "c");
+    }
 </script>
